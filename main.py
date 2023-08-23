@@ -1,6 +1,6 @@
 import streamlit as st
 import streamlit_authenticator as stauth
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import sqlite3
 import pandas as pd
 
@@ -26,7 +26,39 @@ def show_schedule(dt):
     return  output
 
 
-def show_stuff():
+def get_current_user(email):
+    qry = f"SELECT * FROM users WHERE email = '{email}'"
+    db = sqlite3.connect(db_file)
+    result = pd.read_sql_query(qry, db).to_dict("records")[0]
+    return result
+
+def update_date(email, dt):
+    qry = f"UPDATE users SET last_off_day = '{dt}' WHERE email = '{email}'"
+    db = sqlite3.connect(db_file)
+    cur = db.cursor()
+    with db:
+        cur.execute(qry)
+    return cur.rowcount
+    
+
+def main_app(email):
+    # sidebar settings
+    c_user = get_current_user(email)
+    try:
+        dt = datetime.strptime(c_user["last_off_day"], "%Y-%m-%d")
+    except:
+        dt = None
+
+    with st.sidebar.expander("Settings"):
+        base_date = st.date_input("Your last off day", max_value=date.today(), value=dt)
+        update = st.button("Update")
+        if update:
+            res = update_date(email, base_date)
+            if res == 1:
+                st.success("Your last off day was set")
+            else:
+                st.warning("Something went wrong setting your last off day. Please try again.")
+
     col1, col2 = st.columns([3, 1])
     dt = col1.date_input("Choose a date: ", value=date.today(), min_value=date.today())
     col2.header(" ")
@@ -49,6 +81,7 @@ def create_credentials():
 
     return {"usernames": u}
 
+
 authenticator = stauth.Authenticate(create_credentials(),
     cookie_name='current_user', key='some_signature_key')
 
@@ -57,7 +90,7 @@ name, authentication_status, email = authenticator.login('Login', 'sidebar')
 if authentication_status:
     authenticator.logout('Logout', 'main')
     st.header(f"{name}'s Shedule Check")
-    show_stuff()
+    main_app(email)
 elif authentication_status == False:
     st.error('Username/password is incorrect')
 elif authentication_status == None:
