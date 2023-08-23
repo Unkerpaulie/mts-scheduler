@@ -37,12 +37,15 @@ def insert_user(u):
 
 
 def main():
-    create_db()
+    # create_db()
 
     users = [
         {"name": "Peter Parker", "email": "pparker@something.com", "password": "spider"},
         {"name": "John Wick", "email": "jwick@something.com", "password": "mydog"},
         {"name": "Fred Sanford", "email": "sandman@something.com", "password": "thejunk"},
+    ]
+    users = [
+        {"name": "Siobhan Tony", "email": "sheve@something.com", "password": "paubhan"},
     ]
 
     for user in users:
