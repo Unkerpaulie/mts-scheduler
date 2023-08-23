@@ -42,7 +42,7 @@ def update_date(email, dt):
     return cur.rowcount
     
 
-def main_app(email):
+def main_app(email, name):
     # sidebar settings
     c_user = get_current_user(email)
     try:
@@ -50,7 +50,8 @@ def main_app(email):
     except:
         dt = None
 
-    with st.sidebar.expander("Settings"):
+    # set last day off
+    with st.expander("Set last day off"):
         base_date = st.date_input("Your last off day", max_value=date.today(), value=dt)
         update = st.button("Update")
         if update:
@@ -60,6 +61,7 @@ def main_app(email):
             else:
                 st.warning("Something went wrong setting your last off day. Please try again.")
 
+    st.header(f"{name}'s Shedule Check")
     col1, col2 = st.columns([3, 1])
     dt = col1.date_input("Choose a date: ", value=date.today(), min_value=date.today())
     col2.header(" ")
@@ -83,16 +85,16 @@ def create_credentials():
 
     return {"usernames": u}
 
-
+# login
 authenticator = stauth.Authenticate(create_credentials(),
     cookie_name='current_user', key='some_signature_key')
 
-name, authentication_status, email = authenticator.login('Login', 'sidebar')
+
+name, authentication_status, email = authenticator.login('Login', 'main')
 
 if authentication_status:
     authenticator.logout('Logout', 'main')
-    st.header(f"{name}'s Shedule Check")
-    main_app(email)
+    main_app(email, name)
 elif authentication_status == False:
     st.error('Username/password is incorrect')
 elif authentication_status == None:
