@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 from datetime import date, timedelta, datetime
-import sqlite3
+import sqlite3, re
 import pandas as pd
 
 # shift setup
@@ -22,8 +22,23 @@ def show_schedule(dt):
             output += f"| **{thisday.strftime('%A')}** | **{thisday}** | **{schedules[cycle.days % 6]}** |\n"
         else:
             output += f"| {thisday.strftime('%A')} | {thisday} | {schedules[cycle.days % 6]} |\n"
-
     return  output
+
+
+def encrypt_password(password):
+    return stauth.Hasher([password]).generate()[0]
+
+
+def create_user(name, email, password):
+    qry = f"INSERT INTO users (name, email, hashedpwd) VALUES (:name, :email, :hashedpwd)"
+    values = {"name": name, "email": email, "hashedpwd": encrypt_password(password)}
+    # execute, commit and close
+    db = sqlite3.connect(db_file)
+    cur = db.cursor()
+    with db:
+        cur.execute(qry,values)
+    db.close()
+    return cur.rowcount
 
 
 def get_current_user(email):
@@ -43,7 +58,6 @@ def update_date(email, dt):
     
 
 def main_app(email, name):
-    # sidebar settings
     c_user = get_current_user(email)
     try:
         dt = datetime.strptime(c_user["last_off_day"], "%Y-%m-%d")
@@ -61,7 +75,8 @@ def main_app(email, name):
             else:
                 st.warning("Something went wrong setting your last off day. Please try again.")
 
-    st.header(f"{name}'s Shedule Check")
+
+    st.header(f"{name}'s Schedule Check")
     col1, col2 = st.columns([3, 1])
     dt = col1.date_input("Choose a date: ", value=date.today(), min_value=date.today())
     col2.header(" ")
@@ -69,6 +84,37 @@ def main_app(email, name):
     if show:
         st.write(show_schedule(dt))
 
+
+def register():
+    with st.expander("Don't have an account? Register here"):
+        with st.form(key="register", clear_on_submit=False):
+            errors = []
+            st.subheader(":green[Register]")
+            name = st.text_input("Name")
+            email = st.text_input("Email")
+            pwd1 = st.text_input("Password", type="password")
+            pwd2 = st.text_input("Confirm password", type="password")
+            signup = st.form_submit_button("Submit")
+
+            if signup:
+                if not re.match("^[A-Z][A-Za-z\s'-]{1,30}$", name):
+                    errors += ["Your name must only contain letters, spaces, hyphens (-) or apostrophes (')"]
+                if not re.match("^[a-z0-9._-]{3,40}@[a-z0-9.-]{3,25}\.[a-z]{2,6}$", email):
+                    errors += ["Please input a valid email"]
+                if not re.match("^.{8,30}$", pwd1):
+                    errors += ["Your password must be at least 8 characters long"]
+                if pwd1 != pwd2:
+                    errors += ["Your confirmation must be the same as your password"]
+
+                if errors:
+                    for error in errors:
+                        st.error(f"* {error}")
+                else:
+                    r = create_user(name, email, pwd1)
+                    if r:
+                        st.success("You are now registered! Log in with the form above")
+                    else:
+                        st.error("We're sorry, but something went wrong. Please try again later.")
 
 def create_credentials():
     # user authetication
@@ -97,6 +143,9 @@ if authentication_status:
     main_app(email, name)
 elif authentication_status == False:
     st.error('Username/password is incorrect')
+    register()
 elif authentication_status == None:
-    st.warning('Please enter your username and password')
+    # st.warning('Please enter your username and password')
+    register()
+
 
