@@ -131,6 +131,8 @@ def create_credentials():
 
     return {"usernames": u}
 
+# display header
+st.title("Security Shift Scheduler")
 # login
 authenticator = stauth.Authenticate(create_credentials(),
     cookie_name='current_user', key='some_signature_key')
@@ -148,4 +150,23 @@ elif authentication_status == None:
     # st.warning('Please enter your username and password')
     register()
 
+with st.expander("What this site is about"):
+    st.write("""
+            ----
+            ## Overview
+            For the majority of security personnel, shifts rotate in a steady 6-day cycle:
+             * 2 days off
+             * 2 day shifts
+             * 2 night shifts
 
+            This app calculates your shift for any date in the future.
+            
+             ## How to use
+            1. Register with your name, email address and password. Your email address is your username when logging in.
+            2. Once you are registered, log in. You will remain logged in on the site for 30 days unless you log out.
+            3. Set your last day off. You only need to do this once and you don't need to change it unless your rotation changes.
+            4. Under your name, choose a date in the future that you'd like to see your schedule for. Click "Get schedule" to view how you work that day.
+             
+            ----
+            Thank you for using **Security Shift Scheduler**
+            """)
